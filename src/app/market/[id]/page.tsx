@@ -35,8 +35,10 @@ export default async function ImageDetailPage({
     userPoints = userData?.points || 0;
   }
 
-  const isOwner = user?.id === image.creator_id;
-  const canPurchase = image.is_for_sale && !isOwner && user;
+  // 현재 판매자 확인 (재판매면 owner_id, 아니면 creator_id)
+  const currentSellerId = image.owner_id || image.creator_id;
+  const isSeller = user?.id === currentSellerId;
+  const canPurchase = image.is_for_sale && !isSeller && user;
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
