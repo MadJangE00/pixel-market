@@ -383,6 +383,12 @@ export default function MyGalleryClient({
                 <span className="text-gray-600">수수료 ({FEE_PERCENT}%)</span>
                 <span className="font-medium text-red-600">-{calculateFee(resellModal.newPrice)} P</span>
               </div>
+              <div className="text-xs text-gray-500 pl-2">
+                └ Admin ({ADMIN_FEE_PERCENT}%): -{Math.ceil(resellModal.newPrice * 0.1)} P
+              </div>
+              <div className="text-xs text-gray-500 pl-2">
+                └ 제작자 ({CREATOR_FEE_PERCENT}%): -{Math.ceil(resellModal.newPrice * 0.1)} P
+              </div>
               <div className="border-t pt-2 flex justify-between">
                 <span className="text-gray-900 font-medium">실제 수령</span>
                 <span className="font-bold text-green-600">
@@ -402,17 +408,6 @@ export default function MyGalleryClient({
                 onClick={handleResell}
                 disabled={loading === resellModal.image.id}
                 className="flex-1 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition disabled:opacity-50"
-              >
-                {loading === resellModal.image.id ? "처리 중..." : "판매 등록"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-white rounded-lg font-medium hover:bg-purple-700 transition disabled:opacity-50"
               >
                 {loading === resellModal.image.id ? "처리 중..." : "판매 등록"}
               </button>
