@@ -29,7 +29,9 @@ export default function MyGalleryClient({
   const [resellModal, setResellModal] = useState<{ image: Image; newPrice: number } | null>(null);
   const router = useRouter();
 
-  const FEE_PERCENT = 10;
+  const FEE_PERCENT = 20;
+  const ADMIN_FEE_PERCENT = 10;
+  const CREATOR_FEE_PERCENT = 10;
 
   const calculateFee = (price: number) => {
     return Math.ceil(price * (FEE_PERCENT / 100));
@@ -400,6 +402,17 @@ export default function MyGalleryClient({
                 onClick={handleResell}
                 disabled={loading === resellModal.image.id}
                 className="flex-1 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition disabled:opacity-50"
+              >
+                {loading === resellModal.image.id ? "처리 중..." : "판매 등록"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+white rounded-lg font-medium hover:bg-purple-700 transition disabled:opacity-50"
               >
                 {loading === resellModal.image.id ? "처리 중..." : "판매 등록"}
               </button>
