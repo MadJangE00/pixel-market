@@ -221,6 +221,7 @@ CREATE OR REPLACE FUNCTION register_image(
 )
 RETURNS JSON
 LANGUAGE plpgsql
+SECURITY DEFINER
 AS $$
 DECLARE
   v_creator_points INTEGER;
@@ -251,7 +252,7 @@ BEGIN
   
   -- 이미지 등록
   INSERT INTO images (title, description, price, image_url, creator_id, is_for_sale)
-  VALUES (p_title, p_description, p_price, p_image_url, p_creator_id, true);
+  VALUES (p_title, p_description, p_price, p_image_url, p_creator_id, false);
   
   RETURN json_build_object('success', true, 'message', '등록 완료');
 END;

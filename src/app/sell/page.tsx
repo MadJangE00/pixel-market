@@ -135,7 +135,7 @@ export default function SellPage() {
       return;
     }
 
-    router.push("/market");
+    router.push("/my-gallery");
     router.refresh();
   };
 
