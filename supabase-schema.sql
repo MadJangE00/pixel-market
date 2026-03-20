@@ -149,13 +149,13 @@ CREATE OR REPLACE FUNCTION purchase_image(
 )
 RETURNS JSON
 LANGUAGE plpgsql
+SECURITY DEFINER
 AS $$
 DECLARE
   v_image RECORD;
   v_seller_id UUID;
   v_price INTEGER;
   v_buyer_points INTEGER;
-  v_seller_points INTEGER;
 BEGIN
   -- 이미지 정보 조회
   SELECT * INTO v_image FROM images WHERE id = p_image_id;
@@ -181,9 +181,6 @@ BEGIN
   IF v_buyer_points < v_price THEN
     RETURN json_build_object('success', false, 'error', '포인트가 부족합니다');
   END IF;
-  
-  -- 판매자 현재 포인트 조회
-  SELECT points INTO v_seller_points FROM users WHERE id = v_seller_id;
   
   -- 포인트 이전
   UPDATE users SET points = points - v_price WHERE id = p_buyer_id;
