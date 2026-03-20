@@ -30,22 +30,20 @@ export default function MyGalleryClient({
   const router = useRouter();
 
   const FEE_PERCENT = 20;
-  const ADMIN_FEE_PERCENT = 10;
-  const CREATOR_FEE_PERCENT = 10;
-
-  const calculateFee = (price: number) => {
-    // 총 수수료 20% (올림)
-    return Math.ceil(price * 0.2);
-  };
 
   const calculateAdminFee = (price: number) => {
-    // Admin 10% (올림)
-    return Math.ceil(price * 0.1);
+    // Admin 10% (올림, 최소 1)
+    return Math.max(1, Math.ceil(price * 0.1));
   };
 
   const calculateCreatorFee = (price: number) => {
-    // 제작자 = 총 수수료 - Admin 수수료
-    return calculateFee(price) - calculateAdminFee(price);
+    // 제작자 10% (올림, 최소 1)
+    return Math.max(1, Math.ceil(price * 0.1));
+  };
+
+  const calculateFee = (price: number) => {
+    // 총 수수료 = Admin + 제작자
+    return calculateAdminFee(price) + calculateCreatorFee(price);
   };
 
   const handleToggleSale = async (imageId: string, currentlyForSale: boolean) => {
