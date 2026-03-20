@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import type { SiteSettings } from "@/types";
 
 export default function SellPage() {
   const [title, setTitle] = useState("");
@@ -12,8 +13,41 @@ export default function SellPage() {
   const [preview, setPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [userPoints, setUserPoints] = useState(0);
+  const [settings, setSettings] = useState<SiteSettings | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const supabase = createClient();
+
+      // 유저 정보 가져오기
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (user) {
+        const { data: userData } = await supabase
+          .from("users")
+          .select("points")
+          .eq("id", user.id)
+          .single();
+        if (userData) setUserPoints(userData.points);
+      }
+
+      // 수수료 설정 가져오기
+      const res = await fetch("/api/admin/settings");
+      if (res.ok) {
+        const data = await res.json();
+        setSettings(data);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  const listingFee = settings?.listing_fee || 0;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -43,6 +77,12 @@ export default function SellPage() {
 
     if (!price || parseInt(price) < 0) {
       setError("올바른 가격을 입력해주세요");
+      return;
+    }
+
+    // 수수료 확인
+    if (userPoints < listingFee) {
+      setError(`포인트가 부족합니다. 등록 수수료: ${listingFee}P, 보유: ${userPoints}P`);
       return;
     }
 
@@ -78,14 +118,14 @@ export default function SellPage() {
       data: { publicUrl },
     } = supabase.storage.from("pixel-images").getPublicUrl(fileName);
 
-    // DB에 저장
-    const { error: insertError } = await supabase.from("images").insert({
-      title,
-      description,
-      price: parseInt(price),
-      image_url: publicUrl,
-      creator_id: user.id,
-      is_for_sale: true,
+    // DB에 저장 + 수수료 처리 (RPC 호출)
+    const { error: insertError } = await supabase.rpc("register_image", {
+      p_title: title,
+      p_description: description || null,
+      p_price: parseInt(price),
+      p_image_url: publicUrl,
+      p_creator_id: user.id,
+      p_listing_fee: listingFee,
     });
 
     setLoading(false);
@@ -102,6 +142,31 @@ export default function SellPage() {
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-8">🎨 작품 등록</h1>
+
+      {/* 수수료 안내 */}
+      {settings && (
+        <div className="mb-6 bg-amber-50 border border-amber-200 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium text-amber-800">💰 등록 수수료 안내</p>
+              <p className="text-sm text-amber-700 mt-1">
+                작품 등록 시 <strong>{listingFee}P</strong>가 차감됩니다.
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-sm text-amber-700">보유 포인트</p>
+              <p className={`font-bold ${userPoints >= listingFee ? "text-amber-800" : "text-red-600"}`}>
+                {userPoints.toLocaleString()} P
+              </p>
+            </div>
+          </div>
+          {userPoints < listingFee && (
+            <p className="mt-2 text-sm text-red-600 font-medium">
+              ⚠️ 포인트가 부족하여 등록할 수 없습니다.
+            </p>
+          )}
+        </div>
+      )}
 
       {error && (
         <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg mb-4">
@@ -155,7 +220,7 @@ export default function SellPage() {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             required
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900"
             placeholder="작품 제목"
           />
         </div>
@@ -169,7 +234,7 @@ export default function SellPage() {
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900"
             placeholder="작품에 대한 설명"
           />
         </div>
@@ -186,7 +251,7 @@ export default function SellPage() {
               onChange={(e) => setPrice(e.target.value)}
               min="0"
               required
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900"
               placeholder="100"
             />
             <span className="text-gray-500">P</span>
@@ -196,10 +261,10 @@ export default function SellPage() {
         {/* 제출 버튼 */}
         <button
           type="submit"
-          disabled={loading}
-          className="w-full bg-purple-600 text-white py-3 rounded-lg font-semibold hover:bg-purple-700 transition disabled:opacity-50"
+          disabled={loading || userPoints < listingFee}
+          className="w-full bg-purple-600 text-white py-3 rounded-lg font-semibold hover:bg-purple-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {loading ? "등록 중..." : "작품 등록하기"}
+          {loading ? "등록 중..." : `작품 등록하기 (${listingFee}P 차감)`}
         </button>
       </form>
     </div>

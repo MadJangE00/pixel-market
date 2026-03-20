@@ -7,6 +7,17 @@ export default async function Home() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // 유저 상세 정보 가져오기
+  let userData = null;
+  if (user) {
+    const { data } = await supabase
+      .from("users")
+      .select("*")
+      .eq("id", user.id)
+      .single();
+    userData = data;
+  }
+
   // 판매 중인 이미지 가져오기
   const { data: images } = await supabase
     .from("images")
@@ -17,6 +28,29 @@ export default async function Home() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
+      {/* 로그인한 유저 정보 카드 */}
+      {userData && (
+        <div className="mb-8 bg-white rounded-xl shadow-sm p-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center text-2xl">
+              👤
+            </div>
+            <div>
+              <p className="font-semibold text-gray-900">
+                {userData.nickname || userData.name}님, 환영합니다!
+              </p>
+              <p className="text-sm text-gray-500">{userData.email}</p>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="text-sm text-gray-500">보유 포인트</p>
+            <p className="text-2xl font-bold text-purple-600">
+              {userData.points.toLocaleString()} P
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* 히어로 섹션 */}
       <section className="text-center py-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl text-white mb-12">
         <h1 className="text-4xl font-bold mb-4">🎨 Pixel Market</h1>

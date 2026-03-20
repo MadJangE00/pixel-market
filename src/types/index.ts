@@ -37,3 +37,9 @@ export type Transaction = {
   buyer?: User
   seller?: User
 }
+
+export type SiteSettings = {
+  id: number
+  listing_fee: number
+  updated_at: string
+}

@@ -18,6 +18,13 @@ export default async function MyGalleryPage() {
     );
   }
 
+  // 유저 상세 정보 가져오기
+  const { data: userData } = await supabase
+    .from("users")
+    .select("*")
+    .eq("id", user.id)
+    .single();
+
   // 내가 구매한 이미지
   const { data: purchasedImages } = await supabase
     .from("images")
@@ -49,6 +56,36 @@ export default async function MyGalleryPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-8">🖼️ 내 갤러리</h1>
+
+      {/* 유저 정보 카드 */}
+      {userData && (
+        <div className="mb-8 bg-white rounded-xl shadow-sm p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center text-3xl">
+                👤
+              </div>
+              <div>
+                <p className="text-xl font-semibold text-gray-900">
+                  {userData.nickname || userData.name}
+                </p>
+                <p className="text-gray-500">{userData.email}</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-sm text-gray-500 mb-1">보유 포인트</p>
+              <p className="text-3xl font-bold text-purple-600">
+                {userData.points.toLocaleString()} P
+              </p>
+            </div>
+          </div>
+          <div className="mt-4 pt-4 border-t border-gray-100 flex gap-4 text-sm text-gray-600">
+            <span>구매한 작품: {purchasedImages?.length || 0}개</span>
+            <span>판매 중: {sellingImages?.length || 0}개</span>
+            <span>판매 완료: {soldImages?.length || 0}개</span>
+          </div>
+        </div>
+      )}
 
       {/* 내가 구매한 작품 */}
       <section className="mb-12">
