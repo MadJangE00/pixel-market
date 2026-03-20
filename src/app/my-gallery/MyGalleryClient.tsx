@@ -34,7 +34,18 @@ export default function MyGalleryClient({
   const CREATOR_FEE_PERCENT = 10;
 
   const calculateFee = (price: number) => {
-    return Math.ceil(price * (FEE_PERCENT / 100));
+    // 총 수수료 20% (올림)
+    return Math.ceil(price * 0.2);
+  };
+
+  const calculateAdminFee = (price: number) => {
+    // Admin 10% (올림)
+    return Math.ceil(price * 0.1);
+  };
+
+  const calculateCreatorFee = (price: number) => {
+    // 제작자 = 총 수수료 - Admin 수수료
+    return calculateFee(price) - calculateAdminFee(price);
   };
 
   const handleToggleSale = async (imageId: string, currentlyForSale: boolean) => {
@@ -380,14 +391,14 @@ export default function MyGalleryClient({
                 <span className="font-medium">{resellModal.newPrice} P</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">수수료 ({FEE_PERCENT}%)</span>
+                <span className="text-gray-600">수수료</span>
                 <span className="font-medium text-red-600">-{calculateFee(resellModal.newPrice)} P</span>
               </div>
               <div className="text-xs text-gray-500 pl-2">
-                └ Admin ({ADMIN_FEE_PERCENT}%): -{Math.ceil(resellModal.newPrice * 0.1)} P
+                └ Admin: -{calculateAdminFee(resellModal.newPrice)} P
               </div>
               <div className="text-xs text-gray-500 pl-2">
-                └ 제작자 ({CREATOR_FEE_PERCENT}%): -{Math.ceil(resellModal.newPrice * 0.1)} P
+                └ 제작자: -{calculateCreatorFee(resellModal.newPrice)} P
               </div>
               <div className="border-t pt-2 flex justify-between">
                 <span className="text-gray-900 font-medium">실제 수령</span>
