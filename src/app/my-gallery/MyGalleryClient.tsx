@@ -23,10 +23,17 @@ export default function MyGalleryClient({
   const [userData] = useState(initialUserData);
   const [myImages, setMyImages] = useState(initialMyImages);
   const [sellingImages, setSellingImages] = useState(initialSellingImages);
-  const [purchasedImages] = useState(initialPurchasedImages);
+  const [purchasedImages, setPurchasedImages] = useState(initialPurchasedImages);
   const [soldImages] = useState(initialSoldImages);
   const [loading, setLoading] = useState<string | null>(null);
+  const [resellModal, setResellModal] = useState<{ image: Image; newPrice: number } | null>(null);
   const router = useRouter();
+
+  const FEE_PERCENT = 10;
+
+  const calculateFee = (price: number) => {
+    return Math.ceil(price * (FEE_PERCENT / 100));
+  };
 
   const handleToggleSale = async (imageId: string, currentlyForSale: boolean) => {
     setLoading(imageId);
@@ -59,6 +66,63 @@ export default function MyGalleryClient({
         setMyImages(myImages.filter((img) => img.id !== imageId));
         setSellingImages([...sellingImages, { ...image, is_for_sale: true }]);
       }
+    }
+
+    router.refresh();
+  };
+
+  const handleResell = async () => {
+    if (!resellModal) return;
+
+    const { image, newPrice } = resellModal;
+    const fee = calculateFee(newPrice);
+
+    setLoading(image.id);
+    const supabase = createClient();
+
+    // RPC 호출로 재판매 처리
+    const { error } = await supabase.rpc("resell_image", {
+      p_image_id: image.id,
+      p_new_price: newPrice,
+      p_fee: fee,
+    });
+
+    setLoading(null);
+    setResellModal(null);
+
+    if (error) {
+      alert("재판매 등록 실패: " + error.message);
+      return;
+    }
+
+    // 상태 업데이트
+    setPurchasedImages(purchasedImages.filter((img) => img.id !== image.id));
+    setSellingImages([...sellingImages, { ...image, price: newPrice, is_for_sale: true }]);
+
+    router.refresh();
+  };
+
+  const handleStopResell = async (imageId: string) => {
+    setLoading(imageId);
+    const supabase = createClient();
+
+    const { error } = await supabase
+      .from("images")
+      .update({ is_for_sale: false })
+      .eq("id", imageId);
+
+    setLoading(null);
+
+    if (error) {
+      alert("실패했습니다: " + error.message);
+      return;
+    }
+
+    // 상태 업데이트
+    const image = sellingImages.find((img) => img.id === imageId);
+    if (image) {
+      setSellingImages(sellingImages.filter((img) => img.id !== imageId));
+      setPurchasedImages([...purchasedImages, { ...image, is_for_sale: false }]);
     }
 
     router.refresh();
@@ -175,11 +239,16 @@ export default function MyGalleryClient({
                   <div className="absolute top-2 right-2 bg-purple-600 text-white px-2 py-1 rounded-full text-sm font-semibold">
                     {image.price} P
                   </div>
+                  {image.owner_id && (
+                    <div className="absolute top-2 left-2 bg-blue-500 text-white px-2 py-1 rounded text-xs">
+                      재판매
+                    </div>
+                  )}
                 </div>
                 <div className="p-4">
                   <h3 className="font-semibold text-gray-900 truncate">{image.title}</h3>
                   <button
-                    onClick={() => handleToggleSale(image.id, true)}
+                    onClick={() => image.owner_id ? handleStopResell(image.id) : handleToggleSale(image.id, true)}
                     disabled={loading === image.id}
                     className="mt-3 w-full bg-gray-200 text-gray-700 py-2 rounded-lg font-medium hover:bg-gray-300 transition disabled:opacity-50"
                   >
@@ -194,7 +263,7 @@ export default function MyGalleryClient({
         )}
       </section>
 
-      {/* 구매한 작품 */}
+      {/* 구매한 작품 (재판매 가능) */}
       <section className="mb-12">
         <h2 className="text-xl font-semibold mb-4">
           🎨 구매한 작품 ({purchasedImages.length})
@@ -206,7 +275,7 @@ export default function MyGalleryClient({
                 key={image.id}
                 className="bg-white rounded-xl shadow-sm overflow-hidden"
               >
-                <div className="aspect-square bg-gray-100">
+                <div className="aspect-square bg-gray-100 relative">
                   {image.image_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -219,14 +288,24 @@ export default function MyGalleryClient({
                       이미지 없음
                     </div>
                   )}
+                  <div className="absolute top-2 right-2 bg-blue-600 text-white px-2 py-1 rounded-full text-sm font-semibold">
+                    {image.price} P
+                  </div>
                 </div>
                 <div className="p-4">
                   <h3 className="font-semibold text-gray-900 truncate">
                     {image.title}
                   </h3>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-xs text-gray-500 mb-2">
                     by {image.creator?.nickname || image.creator?.name || "익명"}
                   </p>
+                  <button
+                    onClick={() => setResellModal({ image, newPrice: image.price })}
+                    disabled={loading === image.id}
+                    className="mt-1 w-full bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 transition disabled:opacity-50"
+                  >
+                    재판매하기
+                  </button>
                 </div>
               </div>
             ))}
@@ -272,6 +351,61 @@ export default function MyGalleryClient({
             ))}
           </div>
         </section>
+      )}
+
+      {/* 재판매 모달 */}
+      {resellModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
+            <h3 className="text-xl font-bold mb-4">재판매 설정</h3>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                판매 가격 (포인트)
+              </label>
+              <input
+                type="number"
+                value={resellModal.newPrice}
+                onChange={(e) => setResellModal({ ...resellModal, newPrice: parseInt(e.target.value) || 0 })}
+                min="1"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 bg-white"
+              />
+            </div>
+
+            <div className="bg-gray-50 rounded-lg p-4 mb-4 space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">판매 가격</span>
+                <span className="font-medium">{resellModal.newPrice} P</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">수수료 ({FEE_PERCENT}%)</span>
+                <span className="font-medium text-red-600">-{calculateFee(resellModal.newPrice)} P</span>
+              </div>
+              <div className="border-t pt-2 flex justify-between">
+                <span className="text-gray-900 font-medium">실제 수령</span>
+                <span className="font-bold text-green-600">
+                  {resellModal.newPrice - calculateFee(resellModal.newPrice)} P
+                </span>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setResellModal(null)}
+                className="flex-1 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleResell}
+                disabled={loading === resellModal.image.id}
+                className="flex-1 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition disabled:opacity-50"
+              >
+                {loading === resellModal.image.id ? "처리 중..." : "판매 등록"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

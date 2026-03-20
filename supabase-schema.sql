@@ -141,7 +141,8 @@ CREATE POLICY "site_settings_update" ON site_settings
 -- 3. Owner delete: Only the file owner can delete
 
 -- =============================================
--- 함수: 이미지 구매 (포인트 차감 + 소유권 이전)
+-- 함수: 이미지 구매 (수수료 차감 + 소유권 이전)
+-- 재판매 시 수수료 10% 적용 (올림)
 -- =============================================
 CREATE OR REPLACE FUNCTION purchase_image(
   p_image_id UUID,
@@ -155,7 +156,9 @@ DECLARE
   v_image RECORD;
   v_seller_id UUID;
   v_price INTEGER;
+  v_fee INTEGER;
   v_buyer_points INTEGER;
+  v_admin_id UUID;
 BEGIN
   -- 이미지 정보 조회
   SELECT * INTO v_image FROM images WHERE id = p_image_id;
@@ -168,12 +171,25 @@ BEGIN
     RETURN json_build_object('success', false, 'error', '판매 중인 이미지가 아닙니다');
   END IF;
   
-  IF v_image.creator_id = p_buyer_id THEN
+  -- 판매자 결정: owner_id가 있으면 재판매, 없으면 창작자
+  IF v_image.owner_id IS NOT NULL THEN
+    v_seller_id := v_image.owner_id;
+  ELSE
+    v_seller_id := v_image.creator_id;
+  END IF;
+  
+  IF v_seller_id = p_buyer_id THEN
     RETURN json_build_object('success', false, 'error', '자신의 이미지는 구매할 수 없습니다');
   END IF;
   
-  v_seller_id := v_image.creator_id;
   v_price := v_image.price;
+  
+  -- 재판매인 경우 수수료 계산 (10%, 올림)
+  IF v_image.owner_id IS NOT NULL THEN
+    v_fee := CEIL(v_price * 0.1);
+  ELSE
+    v_fee := 0;
+  END IF;
   
   -- 구매자 포인트 확인
   SELECT points INTO v_buyer_points FROM users WHERE id = p_buyer_id;
@@ -182,9 +198,19 @@ BEGIN
     RETURN json_build_object('success', false, 'error', '포인트가 부족합니다');
   END IF;
   
-  -- 포인트 이전
+  -- admin 유저 찾기
+  SELECT id INTO v_admin_id FROM users WHERE role = 'admin' LIMIT 1;
+  
+  -- 포인트 차감 (구매자)
   UPDATE users SET points = points - v_price WHERE id = p_buyer_id;
-  UPDATE users SET points = points + v_price WHERE id = v_seller_id;
+  
+  -- 포인트 지급 (판매자)
+  UPDATE users SET points = points + (v_price - v_fee) WHERE id = v_seller_id;
+  
+  -- 수수료 지급 (admin)
+  IF v_fee > 0 AND v_admin_id IS NOT NULL THEN
+    UPDATE users SET points = points + v_fee WHERE id = v_admin_id;
+  END IF;
   
   -- 소유권 이전
   UPDATE images 
@@ -200,7 +226,8 @@ BEGIN
   RETURN json_build_object(
     'success', true, 
     'message', '구매 완료',
-    'price', v_price
+    'price', v_price,
+    'fee', v_fee
   );
 END;
 $$;
@@ -252,5 +279,45 @@ BEGIN
   VALUES (p_title, p_description, p_price, p_image_url, p_creator_id, false);
   
   RETURN json_build_object('success', true, 'message', '등록 완료');
+END;
+$$;
+
+-- =============================================
+-- 함수: 재판매 등록
+-- =============================================
+CREATE OR REPLACE FUNCTION resell_image(
+  p_image_id UUID,
+  p_new_price INTEGER,
+  p_fee INTEGER
+)
+RETURNS JSON
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_image RECORD;
+  v_owner_id UUID;
+BEGIN
+  -- 이미지 정보 조회
+  SELECT * INTO v_image FROM images WHERE id = p_image_id;
+  
+  IF NOT FOUND THEN
+    RETURN json_build_object('success', false, 'error', '이미지를 찾을 수 없습니다');
+  END IF;
+  
+  -- 소유자 확인
+  v_owner_id := v_image.owner_id;
+  
+  IF v_owner_id IS NULL THEN
+    RETURN json_build_object('success', false, 'error', '소유자가 없습니다');
+  END IF;
+  
+  -- 이미지 가격 업데이트 및 판매 상태 변경
+  UPDATE images 
+  SET price = p_new_price, 
+      is_for_sale = true
+  WHERE id = p_image_id;
+  
+  RETURN json_build_object('success', true, 'message', '재판매 등록 완료');
 END;
 $$;
