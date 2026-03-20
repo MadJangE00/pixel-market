@@ -139,13 +139,3 @@ export default async function ImageDetailPage({
     </div>
   );
 }
-고 구매하기
-                </a>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
