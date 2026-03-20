@@ -118,7 +118,7 @@ export default async function ImageDetailPage({
                 </>
               )}
 
-              {isOwner && (
+              {isSeller && (
                 <div className="bg-blue-50 text-blue-700 px-4 py-3 rounded-lg text-center">
                   내 작품입니다
                 </div>
@@ -130,6 +130,16 @@ export default async function ImageDetailPage({
                   className="block w-full bg-purple-600 text-white py-3 rounded-lg font-semibold text-center hover:bg-purple-700 transition"
                 >
                   로그인하고 구매하기
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+고 구매하기
                 </a>
               )}
             </div>
