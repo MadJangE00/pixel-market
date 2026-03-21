@@ -3,7 +3,10 @@
 import { useState, useRef, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import imageCompression from "browser-image-compression";
 import type { SiteSettings } from "@/types";
+
+const MAX_FILE_SIZE_MB = 5;
 
 export default function SellPage() {
   const [title, setTitle] = useState("");
@@ -11,6 +14,9 @@ export default function SellPage() {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [compressing, setCompressing] = useState(false);
+  const [originalSize, setOriginalSize] = useState<number | null>(null);
+  const [compressedSize, setCompressedSize] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [userPoints, setUserPoints] = useState(0);
   const [settings, setSettings] = useState<SiteSettings | null>(null);
@@ -48,15 +54,44 @@ export default function SellPage() {
 
   const listingFee = settings?.listing_fee || 0;
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
-    if (selectedFile) {
-      setFile(selectedFile);
+    if (!selectedFile) return;
+
+    setOriginalSize(selectedFile.size);
+    setCompressedSize(null);
+    setError("");
+
+    try {
+      let finalFile = selectedFile;
+
+      // 5MB 이상이면 압축
+      if (selectedFile.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+        setCompressing(true);
+
+        const options = {
+          maxSizeMB: MAX_FILE_SIZE_MB,
+          maxWidthOrHeight: 1920,
+          useWebWorker: true,
+        };
+
+        finalFile = await imageCompression(selectedFile, options);
+        setCompressedSize(finalFile.size);
+      }
+
+      setFile(finalFile);
+
+      // 미리보기 생성
       const reader = new FileReader();
       reader.onload = (e) => {
         setPreview(e.target?.result as string);
       };
-      reader.readAsDataURL(selectedFile);
+      reader.readAsDataURL(finalFile);
+    } catch (err) {
+      console.error("이미지 압축 실패:", err);
+      setError("이미지 처리 중 오류가 발생했습니다");
+    } finally {
+      setCompressing(false);
     }
   };
 
@@ -176,10 +211,17 @@ export default function SellPage() {
             이미지
           </label>
           <div
-            onClick={() => fileInputRef.current?.click()}
-            className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-purple-500 transition"
+            onClick={() => !compressing && fileInputRef.current?.click()}
+            className={`border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer transition ${
+              compressing ? "opacity-50 cursor-wait" : "hover:border-purple-500"
+            }`}
           >
-            {preview ? (
+            {compressing ? (
+              <div className="text-gray-500">
+                <div className="text-4xl mb-2 animate-pulse">⏳</div>
+                <p>이미지 압축 중...</p>
+              </div>
+            ) : preview ? (
               <div className="aspect-video relative">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
@@ -192,7 +234,7 @@ export default function SellPage() {
               <div className="text-gray-500">
                 <div className="text-4xl mb-2">📷</div>
                 <p>클릭하여 이미지 선택</p>
-                <p className="text-sm mt-1">JPG, PNG, GIF</p>
+                <p className="text-sm mt-1">JPG, PNG, GIF (최대 5MB, 초과 시 자동 압축)</p>
               </div>
             )}
           </div>
@@ -202,7 +244,15 @@ export default function SellPage() {
             accept="image/*"
             onChange={handleFileChange}
             className="hidden"
+            disabled={compressing}
           />
+
+          {/* 압축 결과 표시 */}
+          {compressedSize !== null && originalSize !== null && (
+            <div className="mt-2 text-sm text-green-600 bg-green-50 px-3 py-2 rounded-lg">
+              ✅ 이미지 압축 완료: {(originalSize / 1024 / 1024).toFixed(1)}MB → {(compressedSize / 1024 / 1024).toFixed(1)}MB
+            </div>
+          )}
         </div>
 
         {/* 제목 */}
@@ -237,7 +287,7 @@ export default function SellPage() {
         {/* 제출 버튼 */}
         <button
           type="submit"
-          disabled={loading || userPoints < listingFee}
+          disabled={loading || compressing || userPoints < listingFee}
           className="w-full bg-purple-600 text-white py-3 rounded-lg font-semibold hover:bg-purple-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? "등록 중..." : `작품 등록하기 (${listingFee}P 차감)`}
