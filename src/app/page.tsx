@@ -30,7 +30,7 @@ export default async function Home() {
     <div className="max-w-7xl mx-auto px-4 py-8">
       {/* 로그인한 유저 정보 카드 */}
       {userData && (
-        <div className="mb-8 bg-white rounded-xl shadow-sm p-4 flex items-center justify-between">
+        <div className="mb-8 bg-white rounded-xl shadow-sm p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center text-2xl">
               👤
@@ -42,7 +42,7 @@ export default async function Home() {
               <p className="text-sm text-gray-500">{userData.email}</p>
             </div>
           </div>
-          <div className="text-right">
+          <div className="sm:text-right">
             <p className="text-sm text-gray-500">보유 포인트</p>
             <p className="text-2xl font-bold text-purple-600">
               {userData.points.toLocaleString()} P
@@ -52,11 +52,11 @@ export default async function Home() {
       )}
 
       {/* 히어로 섹션 */}
-      <section className="text-center py-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl text-white mb-12">
-        <h1 className="text-4xl font-bold mb-4">🎨 Pixel Market</h1>
-        <p className="text-xl mb-8">당신의 창작물을 포인트로 거래하세요</p>
+      <section className="text-center py-10 md:py-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl text-white mb-8 md:mb-12 px-4">
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 md:mb-4">🎨 Pixel Market</h1>
+        <p className="text-base md:text-xl mb-6 md:mb-8">당신의 창작물을 포인트로 거래하세요</p>
         {!user ? (
-          <div className="flex justify-center gap-4">
+          <div className="flex flex-col sm:flex-row justify-center gap-3 md:gap-4">
             <Link
               href="/login"
               className="bg-white text-purple-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition"
@@ -71,7 +71,7 @@ export default async function Home() {
             </Link>
           </div>
         ) : (
-          <div className="flex justify-center gap-4">
+          <div className="flex flex-col sm:flex-row justify-center gap-3 md:gap-4">
             <Link
               href="/sell"
               className="bg-white text-purple-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition"
@@ -90,7 +90,7 @@ export default async function Home() {
 
       {/* 최신 작품 */}
       <section>
-        <h2 className="text-2xl font-bold mb-6">🔥 최신 작품</h2>
+        <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">🔥 최신 작품</h2>
         {images && images.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {images.map((image) => (

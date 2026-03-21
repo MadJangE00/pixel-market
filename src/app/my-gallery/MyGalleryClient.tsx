@@ -175,31 +175,31 @@ export default function MyGalleryClient({
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">🖼️ 내 갤러리</h1>
+      <h1 className="text-2xl md:text-3xl font-bold mb-6 md:mb-8">🖼️ 내 갤러리</h1>
 
       {/* 유저 정보 카드 */}
       {userData && (
-        <div className="mb-8 bg-white rounded-xl shadow-sm p-6">
-          <div className="flex items-center justify-between">
+        <div className="mb-6 md:mb-8 bg-white rounded-xl shadow-sm p-4 md:p-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center text-3xl">
+              <div className="w-12 h-12 md:w-16 md:h-16 bg-purple-100 rounded-full flex items-center justify-center text-2xl md:text-3xl">
                 👤
               </div>
               <div>
-                <p className="text-xl font-semibold text-gray-900">
+                <p className="text-lg md:text-xl font-semibold text-gray-900">
                   {userData.nickname || userData.name}
                 </p>
-                <p className="text-gray-500">{userData.email}</p>
+                <p className="text-sm md:text-base text-gray-500">{userData.email}</p>
               </div>
             </div>
-            <div className="text-right">
+            <div className="sm:text-right">
               <p className="text-sm text-gray-500 mb-1">보유 포인트</p>
-              <p className="text-3xl font-bold text-purple-600">
+              <p className="text-2xl md:text-3xl font-bold text-purple-600">
                 {userData.points.toLocaleString()} P
               </p>
             </div>
           </div>
-          <div className="mt-4 pt-4 border-t border-gray-100 flex gap-4 text-sm text-gray-600">
+          <div className="mt-4 pt-4 border-t border-gray-100 flex flex-wrap gap-2 md:gap-4 text-xs md:text-sm text-gray-600">
             <span>내 작품: {myImages.length + sellingImages.length}개</span>
             <span>판매 중: {sellingImages.length}개</span>
             <span>구매한 작품: {purchasedImages.length}개</span>

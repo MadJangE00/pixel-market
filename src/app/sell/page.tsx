@@ -171,19 +171,19 @@ export default function SellPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">🎨 작품 등록</h1>
+      <h1 className="text-2xl md:text-3xl font-bold mb-6 md:mb-8">🎨 작품 등록</h1>
 
       {/* 수수료 안내 */}
       {settings && (
         <div className="mb-6 bg-amber-50 border border-amber-200 rounded-lg p-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div>
               <p className="font-medium text-amber-800">💰 등록 수수료 안내</p>
               <p className="text-sm text-amber-700 mt-1">
                 작품 등록 시 <strong>{listingFee}P</strong>가 차감됩니다.
               </p>
             </div>
-            <div className="text-right">
+            <div className="sm:text-right">
               <p className="text-sm text-amber-700">보유 포인트</p>
               <p className={`font-bold ${userPoints >= listingFee ? "text-amber-800" : "text-red-600"}`}>
                 {userPoints.toLocaleString()} P

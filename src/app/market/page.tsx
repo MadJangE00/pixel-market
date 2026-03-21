@@ -12,7 +12,7 @@ export default async function MarketPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">🎨 마켓</h1>
+      <h1 className="text-2xl md:text-3xl font-bold mb-6 md:mb-8">🎨 마켓</h1>
 
       {images && images.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
