@@ -8,7 +8,6 @@ import type { SiteSettings } from "@/types";
 export default function SellPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [price, setPrice] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -75,11 +74,6 @@ export default function SellPage() {
       return;
     }
 
-    if (!price || parseInt(price) < 0) {
-      setError("올바른 가격을 입력해주세요");
-      return;
-    }
-
     // 수수료 확인
     if (userPoints < listingFee) {
       setError(`포인트가 부족합니다. 등록 수수료: ${listingFee}P, 보유: ${userPoints}P`);
@@ -119,10 +113,11 @@ export default function SellPage() {
     } = supabase.storage.from("pixel-images").getPublicUrl(fileName);
 
     // DB에 저장 + 수수료 처리 (RPC 호출)
+    // 가격은 0으로 저장, 나중에 판매할 때 설정
     const { error: insertError } = await supabase.rpc("register_image", {
       p_title: title,
       p_description: description || null,
-      p_price: parseInt(price),
+      p_price: 0,
       p_image_url: publicUrl,
       p_creator_id: user.id,
       p_listing_fee: listingFee,
@@ -237,25 +232,6 @@ export default function SellPage() {
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 bg-white"
             placeholder="작품에 대한 설명"
           />
-        </div>
-
-        {/* 가격 */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            가격 (포인트)
-          </label>
-          <div className="flex items-center gap-2">
-            <input
-              type="number"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              min="0"
-              required
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 bg-white"
-              placeholder="100"
-            />
-            <span className="text-gray-500">P</span>
-          </div>
         </div>
 
         {/* 제출 버튼 */}

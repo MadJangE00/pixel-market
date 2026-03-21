@@ -27,6 +27,7 @@ export default function MyGalleryClient({
   const [soldImages] = useState(initialSoldImages);
   const [loading, setLoading] = useState<string | null>(null);
   const [resellModal, setResellModal] = useState<{ image: Image; newPrice: number } | null>(null);
+  const [sellModal, setSellModal] = useState<{ image: Image; price: number } | null>(null);
   const router = useRouter();
 
   const FEE_PERCENT = 20;
@@ -44,6 +45,39 @@ export default function MyGalleryClient({
   const calculateFee = (price: number) => {
     // 총 수수료 = Admin + 제작자
     return calculateAdminFee(price) + calculateCreatorFee(price);
+  };
+
+  const handleOpenSellModal = (image: Image) => {
+    setSellModal({ image, price: 100 });
+  };
+
+  const handleSell = async () => {
+    if (!sellModal) return;
+
+    const { image, price } = sellModal;
+
+    setLoading(image.id);
+    const supabase = createClient();
+
+    // 가격 설정 + 판매 상태 변경
+    const { error } = await supabase
+      .from("images")
+      .update({ price, is_for_sale: true })
+      .eq("id", image.id);
+
+    setLoading(null);
+    setSellModal(null);
+
+    if (error) {
+      alert("판매 등록 실패: " + error.message);
+      return;
+    }
+
+    // 상태 업데이트
+    setMyImages(myImages.filter((img) => img.id !== image.id));
+    setSellingImages([...sellingImages, { ...image, price, is_for_sale: true }]);
+
+    router.refresh();
   };
 
   const handleToggleSale = async (imageId: string, currentlyForSale: boolean) => {
@@ -197,14 +231,11 @@ export default function MyGalleryClient({
                       이미지 없음
                     </div>
                   )}
-                  <div className="absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded-full text-sm font-semibold">
-                    {image.price} P
-                  </div>
                 </div>
                 <div className="p-4">
                   <h3 className="font-semibold text-gray-900 truncate">{image.title}</h3>
                   <button
-                    onClick={() => handleToggleSale(image.id, false)}
+                    onClick={() => handleOpenSellModal(image)}
                     disabled={loading === image.id}
                     className="mt-3 w-full bg-purple-600 text-white py-2 rounded-lg font-medium hover:bg-purple-700 transition disabled:opacity-50"
                   >
@@ -419,6 +450,48 @@ export default function MyGalleryClient({
                 className="flex-1 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition disabled:opacity-50"
               >
                 {loading === resellModal.image.id ? "처리 중..." : "판매 등록"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 판매 모달 (내 작품) */}
+      {sellModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
+            <h3 className="text-xl font-bold mb-4">💰 판매 설정</h3>
+            <p className="text-gray-600 mb-4">{sellModal.image.title}</p>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                판매 가격 (포인트)
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  value={sellModal.price}
+                  onChange={(e) => setSellModal({ ...sellModal, price: parseInt(e.target.value) || 0 })}
+                  min="1"
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 bg-white"
+                />
+                <span className="text-gray-500">P</span>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setSellModal(null)}
+                className="flex-1 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleSell}
+                disabled={loading === sellModal.image.id}
+                className="flex-1 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition disabled:opacity-50"
+              >
+                {loading === sellModal.image.id ? "처리 중..." : "판매 등록"}
               </button>
             </div>
           </div>

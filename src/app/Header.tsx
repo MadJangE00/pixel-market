@@ -63,7 +63,7 @@ export default function Header() {
             마켓
           </a>
           <a href="/sell" className="text-gray-600 hover:text-gray-900">
-            판매하기
+            그림 등록하기
           </a>
           <a href="/my-gallery" className="text-gray-600 hover:text-gray-900">
             내 갤러리
